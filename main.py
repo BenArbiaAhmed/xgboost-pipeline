@@ -4,17 +4,17 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error
 
 
 #Change URL here
-data = pd.read_csv('url')
+data = pd.read_csv('train.csv')
 
 # Change target here
-data.dropna(axis=0, subset=['target'], inplace=True)
-y = data.Target
-X = data.drop(['target'], axis=1)
+data.dropna(axis=0, subset=['SalePrice'], inplace=True)
+y = data.SalePrice
+X = data.drop(['SalePrice'], axis=1)
 
 
 X_train_full, X_valid_full, y_train, y_valid = train_test_split(X, y, train_size=0.8, test_size=0.2,
@@ -22,7 +22,7 @@ X_train_full, X_valid_full, y_train, y_valid = train_test_split(X, y, train_size
 
 
 #Change the number of unique values per categorical column here
-num_unique_values_category = 0
+num_unique_values_category = 20
 categorical_cols = [cname for cname in X_train_full.columns if X_train_full[cname].nunique() < num_unique_values_category and
                         X_train_full[cname].dtype == "object"]
 
@@ -48,20 +48,21 @@ preprocessor = ColumnTransformer(
         ('cat', categorical_transformer, categorical_cols)
     ])
 
-model = RandomForestRegressor(n_estimators=100, random_state=0)
+
+
+model = XGBRegressor(n_estimators=1000, learning_rate=0.03)
 
 
 my_pipeline = Pipeline(steps=[('preprocessor', preprocessor),
                               ('model', model)
                              ])
 
-my_pipeline.fit(X_train, y_train)
 
 
 def score_dataset(param_x_train, param_x_valid, param_y_train, param_y_valid, pipeline):
     pipeline.fit(param_x_train, param_y_train)
     predictions = pipeline.predict(param_x_valid)
-    return mean_absolute_error(param_y_valid, predictions)
+    return predictions
 
 score = score_dataset(X_train, X_valid, y_train, y_valid, my_pipeline)
 print('MAE:', score)
@@ -73,5 +74,5 @@ print('MAE:', score)
 # scores = -1 * cross_val_score(my_pipeline, X, y,
 #                               cv=5,
 #                               scoring='neg_mean_absolute_error')
-# 
+#
 # print("MAE scores:\n", scores)
